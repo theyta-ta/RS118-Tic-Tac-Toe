@@ -21,17 +21,9 @@ fn print_board(gs: &GameState) {
             let val: Option<Player> = gs.board[(y * 3) + x];
 
             match val {
-                None => {
-                    to_display.push('.');
-                }
-                Some(player) => match player {
-                    Player::X => {
-                        to_display.push('X');
-                    }
-                    Player::O => {
-                        to_display.push('O');
-                    }
-                },
+                None => to_display.push('.'),
+                Some(Player::X) => to_display.push('X'),
+                Some(Player::O) => to_display.push('O'),
             }
         }
 
@@ -47,8 +39,6 @@ fn print_turn(gs: &GameState) {
 }
 
 fn request_int() -> u32 {
-    let mut tr: u32 = 0;
-
     loop {
         let mut inp = String::new();
 
@@ -57,36 +47,26 @@ fn request_int() -> u32 {
             .expect("Failed to read input");
 
         match inp.trim().parse() {
-            Ok(num) => {
-                tr = num;
-                break;
-            }
+            Ok(num) => return num,
             Err(_) => println!("Not an unsigned int! Try again."),
         }
     }
-
-    tr
 }
 
 fn request_bound_int() -> u32 {
-    let mut tr = 0;
-
     loop {
         let n = request_int();
 
-        if (n < 4) && (n > 0) {
-            tr = n;
-            break;
+        if (1..=3).contains(&n) {
+            return n;
         }
 
         println!("Put in the range 1-3!");
     }
-
-    tr
 }
 
 fn request_guess(gs: &mut GameState) {
-    while true {
+    loop {
         println!("Enter x coord:");
         let x = request_bound_int() - 1;
 
@@ -94,12 +74,11 @@ fn request_guess(gs: &mut GameState) {
         let y = request_bound_int() - 1;
 
         // check if occupied already
-        let i: usize = ((y * 3) + x).try_into().unwrap();
+        let i = ((y * 3) + x) as usize;
 
         match gs.board[i] {
-            Some(_) => {
-                println!("Coordinate already occupied!");
-            }
+            Some(_) => println!("Coordinate already occupied!"),
+
             None => {
                 gs.board[i] = Some(gs.turn);
                 return;
@@ -147,35 +126,42 @@ fn check_for_win(gs: &GameState) -> Option<Player> {
 
     None
 }
+
+fn game_drawn(gs: &GameState) -> bool {
+    for cell in &gs.board {
+        if cell.is_none() {
+            return false;
+        }
+    }
+
+    true
+}
+
 fn main() {
     let mut our_game = GameState {
         board: [None; 9],
         turn: Player::X,
     };
 
-    let mut won = false;
-
-    while !won {
+    loop {
         print_board(&our_game);
         print_turn(&our_game);
         request_guess(&mut our_game);
         swap_turn(&mut our_game);
 
-        match check_for_win(&our_game) {
-            Some(winning_player) => {
-                won = true;
-                print_board(&our_game);
+        if let Some(winning_player) = check_for_win(&our_game) {
+            print_board(&our_game);
 
-                match winning_player {
-                    Player::O => {
-                        println!("Winner: O!");
-                    }
-                    Player::X => {
-                        println!("Winner: X!");
-                    }
-                }
+            match winning_player {
+                Player::O => println!("Winner: O!"),
+                Player::X => println!("Winner: X!"),
             }
-            None => (),
+            break;
+        }
+
+        if game_drawn(&our_game) {
+            println!("The game is a draw!");
+            break;
         }
     }
 }
